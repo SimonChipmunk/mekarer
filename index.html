@@ -247,6 +247,16 @@
   }
   .toast.show { opacity: 1; transform: none; }
 
+  .sync {
+    display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; font-weight: 500;
+    padding: 6px 12px; border-radius: 999px; background: var(--surface-2); white-space: nowrap;
+  }
+  .sync .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .sync.online .dot { background: var(--fresh); }
+  .sync.offline .dot { background: var(--warn); }
+  .sync.error .dot { background: var(--bad); }
+  .sync.online { color: var(--fresh); background: var(--fresh-soft); }
+
   footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 28px; }
   footer button { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 8px; min-height: 44px; }
 
@@ -278,6 +288,7 @@
         <p class="date" id="todayLabel"></p>
       </div>
     </div>
+    <span class="sync local" id="syncPill" title="מצב שמירה"><span class="dot"></span><span id="syncText">נשמר במכשיר הזה בלבד</span></span>
   </header>
 
   <div id="banner"></div>
@@ -293,20 +304,26 @@
   </main>
 
   <footer>
-    הנתונים נשמרים על המכשיר הזה בלבד.
+    <span id="footNote">הנתונים נשמרים על המכשיר הזה בלבד.</span>
     <button type="button" id="clearExamples" hidden>הסר את פריטי הדוגמה</button>
   </footer>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script>
-(function () {
+<script src="firebase-config.js"></script>
+<script type="module">
+(async function () {
   'use strict';
   document.documentElement.setAttribute('dir', 'rtl');
   document.documentElement.setAttribute('lang', 'he');
 
   var KEY = 'mekarer.v1';
   var DAY = 86400000;
+  var FIREBASE_VERSION = '10.14.1';
+  var cfg = window.FIREBASE_CONFIG;
+  var useCloud = !!(cfg && typeof cfg === 'object' && cfg.projectId && cfg.apiKey);
+  var cloud = null;           /* Firestore handle once connected */
+  var syncState = useCloud ? 'offline' : 'local';
 
   /* ---------- Dates ---------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -350,10 +367,62 @@
       var s = JSON.parse(localStorage.getItem(KEY));
       if (s && Array.isArray(s.items)) return s;
     } catch (e) {}
-    return { items: seed(), user: null };
+    /* With a shared database the examples would be pushed to everyone, so start empty there. */
+    return { items: useCloud ? [] : seed(), user: null };
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
   var state = load();
+  if (useCloud) state.items = state.items.filter(function (i) { return !i.example; });
+
+  /* Mutations go through here so local-only and shared modes behave the same. */
+  function cloudFail(err) { syncState = 'error'; renderSync(); toast('השינוי נשמר במכשיר וימתין לחיבור'); if (window.console) console.warn(err); }
+  function addItem(item) {
+    state.items.push(item); save();
+    if (cloud) cloud.add(item).catch(cloudFail);
+  }
+  function removeItems(ids) {
+    state.items = state.items.filter(function (i) { return ids.indexOf(i.id) < 0; }); save();
+    if (cloud) ids.forEach(function (id) { cloud.remove(id).catch(cloudFail); });
+  }
+
+  /* ---------- Shared database (Firebase Firestore) ---------- */
+  async function initCloud() {
+    if (!useCloud) return;
+    try {
+      var base = 'https://www.gstatic.com/firebasejs/' + FIREBASE_VERSION + '/';
+      var appMod = await import(base + 'firebase-app.js');
+      var fs = await import(base + 'firebase-firestore.js');
+      var app = appMod.initializeApp(cfg);
+      var db;
+      try {
+        db = fs.initializeFirestore(app, { localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() }) });
+      } catch (e) { db = fs.getFirestore(app); }
+      var col = fs.collection(db, 'items');
+      cloud = {
+        add: function (item) { return fs.setDoc(fs.doc(col, item.id), item); },
+        remove: function (id) { return fs.deleteDoc(fs.doc(col, id)); }
+      };
+      fs.onSnapshot(col, { includeMetadataChanges: true }, function (snap) {
+        state.items = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+        syncState = snap.metadata.fromCache ? 'offline' : 'online';
+        save(); render();
+      }, function (err) { syncState = 'error'; renderSync(); if (window.console) console.error(err); });
+    } catch (e) {
+      syncState = 'error'; renderSync(); if (window.console) console.error(e);
+    }
+  }
+  var SYNC_TEXT = {
+    local: 'נשמר במכשיר הזה בלבד',
+    online: 'מסונכרן בין המכשירים',
+    offline: 'ממתין לחיבור, השינויים נשמרים במכשיר',
+    error: 'שגיאת סנכרון. בדקו את ההגדרות של Firebase'
+  };
+  function renderSync() {
+    var p = $('syncPill');
+    p.className = 'sync ' + syncState;
+    $('syncText').textContent = SYNC_TEXT[syncState];
+    $('footNote').textContent = useCloud ? 'הרשימה משותפת לכל המכשירים שמחוברים לאותו מקרר.' : 'הנתונים נשמרים על המכשיר הזה בלבד.';
+  }
   var view = 'mine';
   var pendingDelete = null;
 
@@ -510,6 +579,7 @@
     renderMine();
     renderAll();
     checkExpiry();
+    renderSync();
     $('clearExamples').hidden = !state.items.some(function (i) { return i.example; });
     $('view-mine').hidden = view !== 'mine';
     $('view-all').hidden = view !== 'all';
@@ -537,8 +607,8 @@
       else if (a === 'cancel') { pendingDelete = null; render(); }
       else if (a === 'confirm') {
         var it = state.items.find(function (i) { return i.id === id; });
-        state.items = state.items.filter(function (i) { return i.id !== id; });
-        pendingDelete = null; save(); render();
+        removeItems([id]);
+        pendingDelete = null; render();
         if (it) toast(it.name + ' הוסר מהמקרר');
       }
     }
@@ -558,16 +628,16 @@
       var date = $('foodDate').value;
       if (!food) { $('foodName').focus(); return; }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { $('foodDate').focus(); toast('בחרו תאריך תפוגה'); return; }
-      state.items.push({ id: uid(), owner: state.user, name: food, expires: date, added: todayISO() });
-      save(); render();
+      addItem({ id: uid(), owner: state.user, name: food, expires: date, added: todayISO() });
+      render();
       toast(food + ' נוסף למקרר');
       $('foodName').focus();
     }
   });
 
   $('clearExamples').addEventListener('click', function () {
-    state.items = state.items.filter(function (i) { return !i.example; });
-    save(); render(); toast('פריטי הדוגמה הוסרו');
+    removeItems(state.items.filter(function (i) { return i.example; }).map(function (i) { return i.id; }));
+    render(); toast('פריטי הדוגמה הוסרו');
   });
 
   /* Re-check every minute; re-render when the date rolls over or the tab comes back. */
@@ -581,7 +651,8 @@
     navigator.serviceWorker.register('sw.js').catch(function () {});
   }
 
-  render();
+  render();            /* first paint from what this device already has */
+  await initCloud();   /* then attach to the shared database, if configured */
 })();
 </script>
 </body>
