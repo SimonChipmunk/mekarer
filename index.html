@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>המקרר המשותף</title>
+<meta name="description" content="מעקב אחרי האוכל במקרר המשותף: מי הכניס מה, ומתי זה פג תוקף.">
+<meta name="theme-color" content="#1B7F9E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="המקרר">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700&family=Heebo:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #EEF4F7;
+    --surface: #FFFFFF;
+    --surface-2: #E3ECF1;
+    --line: #C9D8E0;
+    --text: #142B38;
+    --muted: #5C7484;
+    --accent: #1B7F9E;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #D6ECF3;
+    --fresh: #2F855A;
+    --fresh-soft: #DDF2E5;
+    --warn: #B7690F;
+    --warn-soft: #FBEBD0;
+    --bad: #B3261E;
+    --bad-soft: #F9DDDA;
+    --focus: #1B7F9E;
+    --shadow: 0 1px 2px rgba(20, 43, 56, .08), 0 8px 24px rgba(20, 43, 56, .08);
+    --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E1A21;
+      --surface: #16262F;
+      --surface-2: #1E323D;
+      --line: #2C4552;
+      --text: #E5EEF3;
+      --muted: #9BB1BE;
+      --accent: #4FB3D1;
+      --accent-ink: #06202A;
+      --accent-soft: #163A47;
+      --fresh: #6CCB93;
+      --fresh-soft: #173526;
+      --warn: #E5A44A;
+      --warn-soft: #3A2A10;
+      --bad: #F08A82;
+      --bad-soft: #42201D;
+      --focus: #4FB3D1;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E1A21;
+    --surface: #16262F;
+    --surface-2: #1E323D;
+    --line: #2C4552;
+    --text: #E5EEF3;
+    --muted: #9BB1BE;
+    --accent: #4FB3D1;
+    --accent-ink: #06202A;
+    --accent-soft: #163A47;
+    --fresh: #6CCB93;
+    --fresh-soft: #173526;
+    --warn: #E5A44A;
+    --warn-soft: #3A2A10;
+    --bad: #F08A82;
+    --bad-soft: #42201D;
+    --focus: #4FB3D1;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Heebo", "Segoe UI", Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding-inline: 16px;
+    padding-block: 0 96px;
+    direction: rtl;
+  }
+  h1, h2, h3 { font-family: "Rubik", "Heebo", "Segoe UI", Arial, sans-serif; text-wrap: balance; margin: 0; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; touch-action: manipulation; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .wrap { max-width: 920px; margin-inline: auto; }
+
+  /* ---------- Header ---------- */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding-block: 18px 10px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand svg { width: 40px; height: 40px; flex: none; }
+  .brand h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; }
+  .brand .date { color: var(--muted); font-size: .9rem; margin: 0; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 48px; padding: 0 18px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--text);
+    font-weight: 500; white-space: nowrap;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  .btn.danger { color: var(--bad); border-color: var(--bad); background: transparent; }
+  .btn.danger.solid { background: var(--bad); color: #fff; }
+  .btn.small { min-height: 40px; padding: 0 14px; font-size: .95rem; }
+  .btn svg { width: 20px; height: 20px; }
+
+  /* ---------- Alert banner ---------- */
+  .banner {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bad-soft); color: var(--bad);
+    border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
+    border-radius: var(--radius); padding: 14px 18px; margin-block: 6px 14px;
+  }
+  .banner svg { width: 28px; height: 28px; flex: none; }
+  .banner strong { font-family: "Rubik", sans-serif; font-size: 1.05rem; }
+  .banner p { margin: 0; }
+  .banner .list { color: var(--text); font-size: .95rem; }
+  .banner.warn { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+  .banner.info { background: var(--accent-soft); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .banner .btn { margin-inline-start: auto; }
+
+  /* ---------- Tabs ---------- */
+  .tabs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    background: var(--surface-2); padding: 6px; border-radius: 16px; margin-block: 8px 20px;
+  }
+  .tab {
+    min-height: 52px; border-radius: 12px; border: 0; background: transparent;
+    color: var(--muted); font-family: "Rubik", sans-serif; font-weight: 500; font-size: 1.05rem;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); font-weight: 700; }
+  .tab .count {
+    background: var(--bad); color: #fff; border-radius: 999px; font-size: .8rem; min-width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center; padding: 0 7px; font-family: "Heebo", sans-serif;
+  }
+
+  /* ---------- Sections ---------- */
+  .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+  .section { display: grid; gap: 14px; }
+  .section + .section { margin-top: 18px; }
+  .section h2 { font-size: 1.25rem; font-weight: 700; }
+  .section h2 .who { color: var(--accent); }
+  .eyebrow { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .hint { color: var(--muted); margin: 0; font-size: .95rem; }
+
+  /* Who am I */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    min-height: 48px; padding: 0 20px; border-radius: 999px;
+    border: 1.5px solid var(--line); background: var(--surface); font-weight: 500; font-size: 1.05rem;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .chip .n { color: var(--muted); font-size: .85rem; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .chip[aria-pressed="true"] .n { color: inherit; opacity: .8; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .field { display: grid; gap: 6px; flex: 1 1 200px; }
+  .field label { font-size: .9rem; color: var(--muted); font-weight: 500; }
+  .field input {
+    min-height: 52px; padding: 0 14px; border-radius: 12px;
+    border: 1.5px solid var(--line); background: var(--surface); width: 100%;
+    font-size: 1.05rem;
+  }
+  .field input[type="date"] { direction: ltr; text-align: right; }
+  .field input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .field.narrow { flex: 0 1 220px; }
+  .row .btn { min-height: 52px; }
+
+  /* ---------- Food list ---------- */
+  .items { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .item {
+    display: grid; grid-template-columns: 6px 1fr auto; align-items: center; gap: 0 16px;
+    background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+    overflow: hidden; min-height: 76px;
+  }
+  .item .stripe { align-self: stretch; background: var(--line); }
+  .item.fresh .stripe { background: var(--fresh); }
+  .item.soon .stripe, .item.today .stripe { background: var(--warn); }
+  .item.expired .stripe { background: var(--bad); }
+  .item .main { padding-block: 14px; display: grid; gap: 4px; min-width: 0; }
+  .item .name { font-weight: 700; font-size: 1.15rem; overflow-wrap: anywhere; }
+  .item .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--muted); font-size: .95rem; }
+  .item .owner { display: inline-flex; align-items: center; gap: 6px; }
+  .item .owner::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  .item .actions { padding-inline-end: 12px; display: flex; gap: 8px; align-items: center; }
+  .item.expired .name { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--bad) 60%, transparent); text-decoration-thickness: 2px; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+    font-size: .85rem; font-weight: 700; white-space: nowrap;
+  }
+  .pill.fresh { background: var(--fresh-soft); color: var(--fresh); }
+  .pill.soon, .pill.today { background: var(--warn-soft); color: var(--warn); }
+  .pill.expired { background: var(--bad-soft); color: var(--bad); }
+  .tag { font-size: .75rem; border: 1px dashed var(--line); color: var(--muted); border-radius: 6px; padding: 1px 7px; }
+
+  .empty {
+    text-align: center; color: var(--muted); padding-block: 40px; display: grid; gap: 10px; justify-items: center;
+    border: 2px dashed var(--line); border-radius: var(--radius);
+  }
+  .empty svg { width: 56px; height: 56px; opacity: .6; }
+
+  /* Summary strip on the shared view */
+  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); display: grid; gap: 2px; border-top: 4px solid var(--line); }
+  .stat .v { font-family: "Rubik", sans-serif; font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
+  .stat .l { color: var(--muted); font-size: .9rem; }
+  .stat.expired { border-top-color: var(--bad); } .stat.expired .v { color: var(--bad); }
+  .stat.soon { border-top-color: var(--warn); } .stat.soon .v { color: var(--warn); }
+  .stat.fresh { border-top-color: var(--fresh); } .stat.fresh .v { color: var(--fresh); }
+
+  .divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: .9rem; font-weight: 500; margin-block: 8px 2px; }
+  .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .divider.expired { color: var(--bad); }
+  .divider.soon { color: var(--warn); }
+  .divider.fresh { color: var(--fresh); }
+
+  .toast {
+    position: fixed; inset-inline: 16px; bottom: 20px; margin-inline: auto; width: max-content; max-width: calc(100% - 32px);
+    background: var(--text); color: var(--bg); padding: 12px 18px; border-radius: 12px; box-shadow: var(--shadow);
+    opacity: 0; transform: translateY(10px); transition: opacity .2s, transform .2s; pointer-events: none; z-index: 10;
+  }
+  .toast.show { opacity: 1; transform: none; }
+
+  footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 28px; }
+  footer button { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 8px; min-height: 44px; }
+
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .brand h1 { font-size: 1.25rem; }
+    .summary { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .stat { padding: 10px 12px; } .stat .v { font-size: 1.4rem; }
+    .item { grid-template-columns: 6px 1fr; }
+    .item .actions { grid-column: 2; padding: 0 0 12px; }
+    .banner { flex-wrap: wrap; } .banner .btn { margin-inline-start: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <rect x="9" y="3" width="30" height="42" rx="6" fill="var(--accent)"/>
+        <rect x="9" y="3" width="30" height="16" rx="6" fill="var(--accent-soft)" opacity=".55"/>
+        <line x1="9" y1="19" x2="39" y2="19" stroke="var(--bg)" stroke-width="2"/>
+        <rect x="30" y="8" width="3" height="7" rx="1.5" fill="var(--bg)"/>
+        <rect x="30" y="24" width="3" height="10" rx="1.5" fill="var(--bg)"/>
+      </svg>
+      <div>
+        <h1>המקרר המשותף</h1>
+        <p class="date" id="todayLabel"></p>
+      </div>
+    </div>
+  </header>
+
+  <div id="banner"></div>
+
+  <div class="tabs" role="tablist" aria-label="תצוגות">
+    <button class="tab" role="tab" id="tab-mine" aria-selected="true" aria-controls="view-mine" type="button">המקרר שלי</button>
+    <button class="tab" role="tab" id="tab-all" aria-selected="false" aria-controls="view-all" type="button">כל המקרר <span class="count" id="allCount" hidden></span></button>
+  </div>
+
+  <main>
+    <section id="view-mine" role="tabpanel" aria-labelledby="tab-mine"></section>
+    <section id="view-all" role="tabpanel" aria-labelledby="tab-all" hidden></section>
+  </main>
+
+  <footer>
+    הנתונים נשמרים על המכשיר הזה בלבד.
+    <button type="button" id="clearExamples" hidden>הסר את פריטי הדוגמה</button>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+  document.documentElement.setAttribute('dir', 'rtl');
+  document.documentElement.setAttribute('lang', 'he');
+
+  var KEY = 'mekarer.v1';
+  var DAY = 86400000;
+
+  /* ---------- Dates ---------- */
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function toISO(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function todayISO() { return toISO(new Date()); }
+  function parseISO(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function addDays(iso, n) { var d = parseISO(iso); d.setDate(d.getDate() + n); return toISO(d); }
+  function daysUntil(iso) { return Math.round((parseISO(iso) - parseISO(todayISO())) / DAY); }
+  function fmtDate(iso) { var p = iso.split('-'); return p[2] + '.' + p[1] + '.' + p[0]; }
+  function statusOf(iso) {
+    var d = daysUntil(iso);
+    if (d < 0) return 'expired';
+    if (d === 0) return 'today';
+    if (d <= 2) return 'soon';
+    return 'fresh';
+  }
+  function relText(iso) {
+    var d = daysUntil(iso);
+    if (d === 0) return 'פג תוקף היום';
+    if (d === -1) return 'פג תוקף אתמול';
+    if (d < 0) return 'פג תוקף לפני ' + (-d) + ' ימים';
+    if (d === 1) return 'פג מחר';
+    if (d === 2) return 'פג בעוד יומיים';
+    return 'עוד ' + d + ' ימים';
+  }
+  var HEB_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+
+  /* ---------- State ---------- */
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function seed() {
+    var t = todayISO();
+    return [
+      { id: uid(), owner: 'דנה', name: 'קוטג׳ 5%', expires: addDays(t, -2), example: true },
+      { id: uid(), owner: 'יוסי', name: 'שניצלים מהשבת', expires: addDays(t, 0), example: true },
+      { id: uid(), owner: 'דנה', name: 'חלב 3%', expires: addDays(t, 2), example: true },
+      { id: uid(), owner: 'יוסי', name: 'חומוס', expires: addDays(t, 6), example: true }
+    ];
+  }
+  function load() {
+    try {
+      var s = JSON.parse(localStorage.getItem(KEY));
+      if (s && Array.isArray(s.items)) return s;
+    } catch (e) {}
+    return { items: seed(), user: null };
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var state = load();
+  var view = 'mine';
+  var pendingDelete = null;
+
+  function owners() {
+    var map = {};
+    state.items.forEach(function (i) { map[i.owner] = (map[i.owner] || 0) + 1; });
+    if (state.user && !map[state.user]) map[state.user] = 0;
+    return Object.keys(map).sort(function (a, b) { return a.localeCompare(b, 'he'); }).map(function (k) { return { name: k, count: map[k] }; });
+  }
+  function sorted(list) { return list.slice().sort(function (a, b) { return a.expires < b.expires ? -1 : a.expires > b.expires ? 1 : a.name.localeCompare(b.name, 'he'); }); }
+
+  /* ---------- Helpers ---------- */
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function $(id) { return document.getElementById(id); }
+  var toastTimer;
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+  var TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+  var FRIDGE_EMPTY = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="10" y="4" width="28" height="40" rx="4"/><line x1="10" y1="18" x2="38" y2="18"/><line x1="31" y1="9" x2="31" y2="14"/><line x1="31" y1="23" x2="31" y2="32"/></svg>';
+
+  function itemHTML(i, showOwner) {
+    var st = statusOf(i.expires);
+    var confirm = pendingDelete === i.id;
+    return '<li class="item ' + st + '" data-id="' + i.id + '">' +
+      '<span class="stripe"></span>' +
+      '<div class="main">' +
+        '<div class="name">' + esc(i.name) + (i.example ? ' <span class="tag">דוגמה</span>' : '') + '</div>' +
+        '<div class="meta">' +
+          (showOwner ? '<span class="owner">' + esc(i.owner) + '</span>' : '') +
+          '<span class="num">תוקף: ' + fmtDate(i.expires) + '</span>' +
+          '<span class="pill ' + st + '">' + relText(i.expires) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="actions">' +
+        (confirm
+          ? '<span class="hint">למחוק את ' + esc(i.name) + '?</span>' +
+            '<button class="btn small danger solid" data-act="confirm" type="button">כן, מחק</button>' +
+            '<button class="btn small ghost" data-act="cancel" type="button">לא</button>'
+          : '<button class="btn small danger" data-act="delete" type="button" aria-label="מחק ' + esc(i.name) + '">' + TRASH + ' מחק</button>') +
+      '</div>' +
+    '</li>';
+  }
+
+  /* ---------- Render: my fridge ---------- */
+  function renderMine() {
+    var el = $('view-mine');
+    var os = owners();
+    var html = '';
+
+    html += '<div class="card section">' +
+      '<span class="eyebrow">מי במקרר?</span>' +
+      '<h2>' + (state.user ? 'שלום, <span class="who">' + esc(state.user) + '</span>' : 'מי אתם?') + '</h2>' +
+      (os.length ? '<div class="chips">' + os.map(function (o) {
+        return '<button class="chip" type="button" data-owner="' + esc(o.name) + '" aria-pressed="' + (o.name === state.user) + '">' + esc(o.name) + ' <span class="n num">' + o.count + '</span></button>';
+      }).join('') + '</div>' : '') +
+      '<form class="row" id="userForm" autocomplete="off">' +
+        '<div class="field"><label for="userName">' + (os.length ? 'או שם חדש' : 'איך קוראים לך?') + '</label>' +
+        '<input id="userName" name="userName" type="text" maxlength="30" placeholder="למשל: נועה" enterkeyhint="done"></div>' +
+        '<button class="btn primary" type="submit">כניסה</button>' +
+      '</form>' +
+    '</div>';
+
+    if (state.user) {
+      var mine = sorted(state.items.filter(function (i) { return i.owner === state.user; }));
+      var expired = mine.filter(function (i) { return statusOf(i.expires) === 'expired'; }).length;
+      html += '<div class="section">' +
+        '<div class="card section">' +
+          '<span class="eyebrow">הוספה למקרר</span>' +
+          '<form class="row" id="addForm" autocomplete="off">' +
+            '<div class="field"><label for="foodName">מה הכנסת?</label>' +
+              '<input id="foodName" name="foodName" type="text" maxlength="60" placeholder="למשל: גבינה צהובה" required enterkeyhint="next"></div>' +
+            '<div class="field narrow"><label for="foodDate">תאריך תפוגה</label>' +
+              '<input id="foodDate" name="foodDate" type="date" required min="2000-01-01" value="' + addDays(todayISO(), 7) + '"></div>' +
+            '<button class="btn primary" type="submit">הוסף</button>' +
+          '</form>' +
+        '</div>' +
+        '<h2>המקרר של <span class="who">' + esc(state.user) + '</span> <span class="hint num">· ' + mine.length + ' פריטים' + (expired ? ', ' + expired + ' פגי תוקף' : '') + '</span></h2>' +
+        (mine.length
+          ? '<ul class="items">' + mine.map(function (i) { return itemHTML(i, false); }).join('') + '</ul>'
+          : '<div class="empty">' + FRIDGE_EMPTY + '<strong>המדף שלך ריק</strong><span>הוסיפו מאכל ותאריך תפוגה למעלה.</span></div>') +
+      '</div>';
+    } else {
+      html += '<p class="hint" style="margin-top:14px">בחרו שם או הקלידו שם חדש כדי לראות את המדף שלכם במקרר.</p>';
+    }
+    el.innerHTML = html;
+  }
+
+  /* ---------- Render: everyone ---------- */
+  function renderAll() {
+    var el = $('view-all');
+    var all = sorted(state.items);
+    var groups = { expired: [], today: [], soon: [], fresh: [] };
+    all.forEach(function (i) { groups[statusOf(i.expires)].push(i); });
+    var nExpired = groups.expired.length, nSoon = groups.today.length + groups.soon.length, nFresh = groups.fresh.length;
+
+    var html = '<div class="section">' +
+      '<div class="summary">' +
+        '<div class="stat expired"><span class="v num">' + nExpired + '</span><span class="l">פגי תוקף</span></div>' +
+        '<div class="stat soon"><span class="v num">' + nSoon + '</span><span class="l">פגים עד יומיים</span></div>' +
+        '<div class="stat fresh"><span class="v num">' + nFresh + '</span><span class="l">טריים</span></div>' +
+      '</div>' +
+      '<p class="hint">כל המאכלים של כולם, מהתוקף הישן ביותר לחדש ביותר. מי שרואה משהו שפג תוקף מוזמן לזרוק.</p>';
+
+    if (!all.length) {
+      html += '<div class="empty">' + FRIDGE_EMPTY + '<strong>המקרר ריק</strong><span>עדיין אף אחד לא הכניס כלום.</span></div>';
+    } else {
+      var sections = [
+        ['expired', 'פג תוקף', groups.expired],
+        ['soon', 'פג היום או בקרוב', groups.today.concat(groups.soon)],
+        ['fresh', 'טרי', groups.fresh]
+      ];
+      sections.forEach(function (s) {
+        if (!s[2].length) return;
+        html += '<div class="divider ' + s[0] + '">' + s[1] + ' <span class="num">(' + s[2].length + ')</span></div>' +
+          '<ul class="items">' + s[2].map(function (i) { return itemHTML(i, true); }).join('') + '</ul>';
+      });
+    }
+    html += '</div>';
+    el.innerHTML = html;
+
+    var c = $('allCount');
+    c.hidden = !nExpired; c.textContent = nExpired;
+  }
+
+  /* ---------- Expiry banner ---------- */
+  function renderBanner() {
+    var el = $('banner');
+    var expired = sorted(state.items.filter(function (i) { return statusOf(i.expires) === 'expired'; }));
+    var today = state.items.filter(function (i) { return statusOf(i.expires) === 'today'; });
+    var names = function (list) { return list.slice(0, 4).map(function (i) { return i.name + ' (' + i.owner + ')'; }).join(', ') + (list.length > 4 ? ' ועוד ' + (list.length - 4) : ''); };
+    var WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    if (expired.length) {
+      el.innerHTML = '<div class="banner" role="alert">' + WARN + '<div><strong>' + (expired.length === 1 ? 'מאכל אחד פג תוקף' : expired.length + ' מאכלים פגו תוקף') + '</strong>' +
+        '<p class="list">' + esc(names(expired)) + '</p></div>' +
+        '<button class="btn small" type="button" data-goto="all">הצג</button></div>';
+    } else if (today.length) {
+      el.innerHTML = '<div class="banner warn">' + WARN + '<div><strong>' + (today.length === 1 ? 'מאכל אחד פג תוקף היום' : today.length + ' מאכלים פגים היום') + '</strong>' +
+        '<p class="list">' + esc(names(today)) + '</p></div>' +
+        '<button class="btn small" type="button" data-goto="all">הצג</button></div>';
+    } else {
+      el.innerHTML = '';
+    }
+  }
+
+  function checkExpiry() { renderBanner(); }
+
+  /* ---------- Full render ---------- */
+  var lastDay = todayISO();
+  function render() {
+    var d = new Date();
+    $('todayLabel').textContent = 'יום ' + HEB_DAYS[d.getDay()] + ', ' + fmtDate(toISO(d));
+    renderMine();
+    renderAll();
+    checkExpiry();
+    $('clearExamples').hidden = !state.items.some(function (i) { return i.example; });
+    $('view-mine').hidden = view !== 'mine';
+    $('view-all').hidden = view !== 'all';
+    $('tab-mine').setAttribute('aria-selected', view === 'mine');
+    $('tab-all').setAttribute('aria-selected', view === 'all');
+  }
+  function setView(v) { view = v; pendingDelete = null; render(); window.scrollTo({ top: 0 }); }
+
+  /* ---------- Events ---------- */
+  $('tab-mine').addEventListener('click', function () { setView('mine'); });
+  $('tab-all').addEventListener('click', function () { setView('all'); });
+
+  document.addEventListener('click', function (e) {
+    var goto = e.target.closest('[data-goto]');
+    if (goto) { setView(goto.getAttribute('data-goto')); return; }
+
+    var chip = e.target.closest('.chip[data-owner]');
+    if (chip) { state.user = chip.getAttribute('data-owner'); pendingDelete = null; save(); render(); return; }
+
+    var act = e.target.closest('[data-act]');
+    if (act) {
+      var li = act.closest('.item'); var id = li && li.getAttribute('data-id');
+      var a = act.getAttribute('data-act');
+      if (a === 'delete') { pendingDelete = id; render(); }
+      else if (a === 'cancel') { pendingDelete = null; render(); }
+      else if (a === 'confirm') {
+        var it = state.items.find(function (i) { return i.id === id; });
+        state.items = state.items.filter(function (i) { return i.id !== id; });
+        pendingDelete = null; save(); render();
+        if (it) toast(it.name + ' הוסר מהמקרר');
+      }
+    }
+  });
+
+  document.addEventListener('submit', function (e) {
+    if (e.target.id === 'userForm') {
+      e.preventDefault();
+      var name = $('userName').value.trim().replace(/\s+/g, ' ');
+      if (!name) { $('userName').focus(); return; }
+      state.user = name; pendingDelete = null; save(); render();
+      var f = $('foodName'); if (f) f.focus();
+    }
+    if (e.target.id === 'addForm') {
+      e.preventDefault();
+      var food = $('foodName').value.trim().replace(/\s+/g, ' ');
+      var date = $('foodDate').value;
+      if (!food) { $('foodName').focus(); return; }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { $('foodDate').focus(); toast('בחרו תאריך תפוגה'); return; }
+      state.items.push({ id: uid(), owner: state.user, name: food, expires: date, added: todayISO() });
+      save(); render();
+      toast(food + ' נוסף למקרר');
+      $('foodName').focus();
+    }
+  });
+
+  $('clearExamples').addEventListener('click', function () {
+    state.items = state.items.filter(function (i) { return !i.example; });
+    save(); render(); toast('פריטי הדוגמה הוסרו');
+  });
+
+  /* Re-check every minute; re-render when the date rolls over or the tab comes back. */
+  setInterval(function () {
+    if (todayISO() !== lastDay) { lastDay = todayISO(); render(); } else { checkExpiry(); }
+  }, 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) render(); });
+
+  /* Service worker: offline + installable. Fails quietly where not allowed. */
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
